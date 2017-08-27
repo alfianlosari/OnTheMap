@@ -34,7 +34,7 @@ struct LoginStore {
                 return
             }
             
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 200 || httpResponse.statusCode <= 299 else {
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 200 && httpResponse.statusCode <= 299 else {
                 let error = NSError(domain: "Login", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid Email or Password."])
                 DispatchQueue.main.async { completionHandler(
                     nil, error) }

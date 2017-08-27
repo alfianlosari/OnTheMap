@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import SafariServices
 
 private let postLocationSegueIdentifier = "PostLocation"
 private let reuseIdentifier = "LocationCell"
@@ -15,7 +14,7 @@ private let reuseIdentifier = "LocationCell"
 class LocationTableViewController: UIViewController, RefreshViewControllerType {
     
     var appDelegate: AppDelegate { return UIApplication.shared.delegate as! AppDelegate }
-    var locations: [StudentInformation] { return appDelegate.locations }
+    var locations: [StudentInformation] { return appDelegate.appData?.locations ?? [] }
     var isRefreshingData = false
     @IBOutlet weak var tableView: UITableView!
     @IBOutlet weak var activityIndicatorView: UIActivityIndicatorView!
@@ -47,8 +46,8 @@ class LocationTableViewController: UIViewController, RefreshViewControllerType {
     }
     
     @IBAction func postLocation(_ sender: Any) {
-        if let accountId = appDelegate.accountId,
-            let currentLocation = appDelegate.locations.filter({ $0.uniqueKey == accountId }).first {
+        if let accountId = appDelegate.appData?.accountId,
+            let currentLocation = locations.filter({ $0.uniqueKey == accountId }).first {
             let alertController = UIAlertController(title: "", message: "User \(currentLocation.fullName) Has Already Posted a Student Location. Would You Like to Overwrite Their Location?", preferredStyle: .alert)
             alertController.addAction(UIAlertAction(title: "Overwrite", style: .default, handler: { (_) in
                 self.performSegue(withIdentifier: postLocationSegueIdentifier, sender: currentLocation)
@@ -63,7 +62,7 @@ class LocationTableViewController: UIViewController, RefreshViewControllerType {
 
 
     @IBAction func logout(_ sender: Any) {
-        appDelegate.loginSession = nil
+        appDelegate.appData = nil
         presentingViewController?.dismiss(animated: true, completion: nil)
     }
     
@@ -71,16 +70,20 @@ class LocationTableViewController: UIViewController, RefreshViewControllerType {
         guard !isRefreshingData else { return }
         NotificationCenter.default.post(name: didStartRefreshLocationsNotification, object: nil)
         LocationStore.getStudentLocations { [weak self] (locations, error) in
+            
+            defer {
+                NotificationCenter.default.post(name: didFinishRefreshLocationsNotification, object: nil)
+            }            
+            
             if let error = error {
                 self?.showAlert(title: nil, message: error.localizedDescription)
                 return
             }
             
             if let locations = locations {
-                self?.appDelegate.locations = locations
+                self?.appDelegate.appData?.locations = locations
             }
             
-            NotificationCenter.default.post(name: didFinishRefreshLocationsNotification, object: nil)
         }
     }
     
@@ -115,13 +118,14 @@ extension LocationTableViewController: UITableViewDataSource, UITableViewDelegat
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let location = locations[indexPath.row]
         guard location.mediaURL.hasPrefix("http://") || location.mediaURL.hasPrefix("https://"),
-            let url = URL(string: locations[indexPath.row].mediaURL) else {
+            let url = URL(string: locations[indexPath.row].mediaURL),
+            UIApplication.shared.canOpenURL(url) else {
                 showAlert(title: nil, message: "Unsupported URL Format")
                 return
         
         }
-        let safariVC = SFSafariViewController(url: url)
-        present(safariVC, animated: true, completion: nil)
+        UIApplication.shared.open(url, options: [:], completionHandler: nil)
+
     }
     
 }

@@ -35,7 +35,7 @@ class AddLocationMapViewController: UIViewController {
     
 
     @IBAction func post(_ sender: Any) {
-        guard let accountId = appDelegate.accountId else {
+        guard let accountId = appDelegate.appData?.accountId else {
             self.showAlert(title: nil, message: "Unable to retrieve login session")
             return
         }

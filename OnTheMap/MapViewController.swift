@@ -8,15 +8,13 @@
 
 import UIKit
 import MapKit
-import SafariServices
 
 private let postLocationSegueIdentifier = "PostLocation"
 
 class MapViewController: UIViewController, RefreshViewControllerType {
     
     var appDelegate: AppDelegate { return UIApplication.shared.delegate as! AppDelegate }
-
-    var locations: [StudentInformation] { return appDelegate.locations }
+    var locations: [StudentInformation] { return appDelegate.appData?.locations ?? [] }
     var isRefreshingData = false
     var locationTableViewController: LocationTableViewController {
         return (tabBarController!.viewControllers![1] as! UINavigationController).topViewController! as! LocationTableViewController
@@ -63,8 +61,8 @@ class MapViewController: UIViewController, RefreshViewControllerType {
     }
     
     @IBAction func postLocation(_ sender: Any) {
-        if let accountId = appDelegate.accountId,
-            let currentLocation = appDelegate.locations.filter({ $0.uniqueKey == accountId }).first {
+        if let accountId = appDelegate.appData?.accountId,
+            let currentLocation = locations.filter({ $0.uniqueKey == accountId }).first {
             let alertController = UIAlertController(title: "", message: "User \(currentLocation.fullName) Has Already Posted a Student Location. Would You Like to Overwrite Their Location?", preferredStyle: .alert)
             alertController.addAction(UIAlertAction(title: "Overwrite", style: .default, handler: { (_) in
                 self.performSegue(withIdentifier: postLocationSegueIdentifier, sender: currentLocation)
@@ -78,7 +76,7 @@ class MapViewController: UIViewController, RefreshViewControllerType {
     }
 
     @IBAction func logout(_ sender: Any) {
-        appDelegate.loginSession = nil
+        appDelegate.appData = nil
         presentingViewController?.dismiss(animated: true, completion: nil)
     }
     
@@ -86,16 +84,20 @@ class MapViewController: UIViewController, RefreshViewControllerType {
         guard !isRefreshingData else { return }
         NotificationCenter.default.post(name: didStartRefreshLocationsNotification, object: nil)
         LocationStore.getStudentLocations { [weak self] (locations, error) in
+            
+            defer {
+                NotificationCenter.default.post(name: didFinishRefreshLocationsNotification, object: nil)
+            }
+            
             if let error = error {
                 self?.showAlert(title: nil, message: error.localizedDescription)
                 return
             }
             
             if let locations = locations {
-                self?.appDelegate.locations = locations
+                self?.appDelegate.appData?.locations = locations
             }
             
-            NotificationCenter.default.post(name: didFinishRefreshLocationsNotification, object: nil)
         }
     }
     
@@ -143,14 +145,15 @@ extension MapViewController: MKMapViewDelegate {
             mapView.deselectAnnotation(annotation, animated: true)
             guard let subtitle = annotation.subtitle ?? "",
                 let url = URL(string: subtitle),
-                subtitle.hasPrefix("http://") || subtitle.hasPrefix("https://")
+                subtitle.hasPrefix("http://") || subtitle.hasPrefix("https://"),
+                UIApplication.shared.canOpenURL(url)
                 else {
                     showAlert(title: nil, message: "Unsupported URL Format")
                     return
             }
             
-            let safariVC = SFSafariViewController(url: url)
-            present(safariVC, animated: true, completion: nil)
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+
         }
     }
     

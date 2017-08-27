@@ -31,6 +31,14 @@ struct LocationStore {
                 return
             }
             
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 200 && httpResponse.statusCode <= 299  else {
+                let error = NSError(domain: "Get Locations", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to get locations"])
+                DispatchQueue.main.async { completionHandler(
+                    nil, error) }
+                return
+            }
+            
+            
             do {
                 let json = try JSONSerialization.jsonObject(with: data!, options: []) as! [String: Any]
                 guard let results = json["results"] as? [[String: Any]] else {
@@ -72,7 +80,7 @@ struct LocationStore {
                 return
             }
             
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 200 || httpResponse.statusCode <= 299  else {
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 200 && httpResponse.statusCode <= 299  else {
                 let error = NSError(domain: "Post Location", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to post location"])
                 DispatchQueue.main.async { completionHandler(
                     nil, error) }
@@ -119,7 +127,7 @@ struct LocationStore {
                 return
             }
             
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 200 || httpResponse.statusCode <= 299  else {
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 200 && httpResponse.statusCode <= 299  else {
                 let error = NSError(domain: "PUT Location", code: 0, userInfo: [NSLocalizedDescriptionKey: "Failed to put location"])
                 DispatchQueue.main.async { completionHandler(
                     nil, error) }

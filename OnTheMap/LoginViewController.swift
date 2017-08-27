@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import SafariServices
 
 private let presentTabBarSegueIdentifier = "PresentTabBar"
 
@@ -82,8 +81,15 @@ class LoginViewController: UIViewController {
                     self?.showAlert(title: nil, message: error.localizedDescription)
                     return
                 }
-
-                self?.appDelegate.loginSession = session
+                
+                // Validate Login Session Data
+                guard let session = session else {
+                    self?.showAlert(title: nil, message: "Failed to get login session.")
+                    return
+                }
+                
+                // Initialize app data with login session and store it in AppDelegate
+                self?.appDelegate.appData = AppData(locations: [], loginSession: session)
                 self?.performSegue(withIdentifier: presentTabBarSegueIdentifier, sender: nil)
             }
         } catch {
@@ -93,8 +99,7 @@ class LoginViewController: UIViewController {
     }
     
     @IBAction func signup(_ sender: Any) {
-        let safariVC = SFSafariViewController(url: signupURL)
-        present(safariVC, animated: true, completion: nil)
+        UIApplication.shared.open(signupURL, options: [:], completionHandler: nil)
     }
     
     func validateEmailAndPassword() throws -> (email: String, password: String) {
